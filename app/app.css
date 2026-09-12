@@ -1,15 +1,23 @@
 @import "tailwindcss" source(".");
 
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif,
-    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-sans:
+    ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
+    "Segoe UI Symbol", "Noto Color Emoji";
 }
 
 html,
 body {
-  @apply bg-white dark:bg-gray-950;
+  @apply bg-slate-300 dark:bg-slate-700;
+  @apply text-slate-800 dark:text-slate-100;
 
   @media (prefers-color-scheme: dark) {
     color-scheme: dark;
   }
+}
+
+.page-framework {
+  @apply w-[95%] md:w-[91%] lg:w-[88%] xl:w-[86%] 2xl:w-[85%];
+  @apply md:min-w-[45.6rem] lg:min-w-[58.24rem] xl:min-w-[70.4rem] 2xl:min-w-[82.56rem];
+  @apply 2xl:max-w-384 mx-auto;
 }
