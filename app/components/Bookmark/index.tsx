@@ -20,11 +20,9 @@ export default function Bookmark({
   emphasized = false,
   ...restProps
 }: {
-  name: string;
-  icon: string;
-  description?: string;
   emphasized?: boolean;
-} & ComponentProps<"a">) {
+} & BookmarkData &
+  ComponentProps<"a">) {
   const iconSize = emphasized ? "2rem" : "1rem";
   const normalizedIcon = icon.toLowerCase();
   const iconName: IconName = isIconName(normalizedIcon) ? normalizedIcon : "x";
