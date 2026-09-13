@@ -1,4 +1,9 @@
+import { DynamicIcon, type IconName, iconNames } from "lucide-react/dynamic";
 import type { ComponentProps } from "react";
+
+function isIconName(value: string): value is IconName {
+  return iconNames.includes(value as IconName);
+}
 
 type BookmarkData = {
   name: string;
@@ -20,10 +25,17 @@ export default function Bookmark({
   description?: string;
   emphasized?: boolean;
 } & ComponentProps<"a">) {
+  const iconSize = emphasized ? "2rem" : "1rem";
+  const normalizedIcon = icon.toLowerCase();
+  const iconName: IconName = isIconName(normalizedIcon) ? normalizedIcon : "x";
+  const iconElement = isIconName(normalizedIcon) ? (
+    <DynamicIcon name={iconName} size={iconSize} />
+  ) : null;
+
   const bookmarkElement = emphasized ? (
     <>
-      <div className="w-10 overflow-hidden flex-none content-center justify-center">
-        {icon}
+      <div className="w-8 overflow-hidden flex-none flex items-center justify-center">
+        {iconElement}
       </div>
       <div>
         <div className="text-emphasized">{name}</div>
@@ -32,14 +44,14 @@ export default function Bookmark({
     </>
   ) : (
     <>
-      <div className="w-6 overflow-hidden flex-none content-center justify-center">
-        {icon}
+      <div className="w-4 overflow-hidden flex-none flex items-center justify-center">
+        {iconElement}
       </div>
       <div className="text-normal">{name}</div>
     </>
   );
   return (
-    <a href={href} target="_blank" rel="noreferrer">
+    <a href={href} target="_blank" rel="noreferrer" {...restProps}>
       <div className="flex gap-2 rounded-md p-2 hover:bg-slate-900 transition duration-150">
         {bookmarkElement}
       </div>
