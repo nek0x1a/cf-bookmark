@@ -15,3 +15,5 @@ worker-configuration.d.ts
 
 !.dev.vars.example
 !.env.example
+
+/app/data/

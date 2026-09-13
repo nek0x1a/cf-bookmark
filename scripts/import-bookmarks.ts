@@ -26,14 +26,14 @@ type BookmarkGroupType = {
   name: string;
   emphasized: boolean;
   description: string;
-  bookmarks: Array<BookmarkDataType>;
+  bookmarks: BookmarkDataType[];
 };
 
 class BookmarkGroupData {
   name: string;
   emphasized: boolean;
   description: string;
-  bookmarks: Array<BookmarkData>;
+  bookmarks: BookmarkData[];
 
   constructor({ name, emphasized, description, bookmarks }: BookmarkGroupType) {
     this.name = name;
@@ -43,9 +43,9 @@ class BookmarkGroupData {
   }
 }
 
-function toSqlStr(groups: Array<BookmarkGroupData>): string {
-  const groupStrs: Array<string> = [];
-  const bookmarkStr: Array<string> = [];
+function toSqlStr(groups: BookmarkGroupData[]): string {
+  const groupStrs: string[] = [];
+  const bookmarkStr: string[] = [];
   groups.forEach((group, gIndex) => {
     groupStrs.push(
       `(${gIndex}, "${group.name}", ${group.emphasized}, "${group.description}", ${gIndex})`,
