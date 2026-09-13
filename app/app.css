@@ -21,3 +21,13 @@ body {
   @apply md:min-w-[45.6rem] lg:min-w-[58.24rem] xl:min-w-[70.4rem] 2xl:min-w-[82.56rem];
   @apply 2xl:max-w-384 mx-auto;
 }
+
+.text-normal {
+  @apply text-slate-800 dark:text-slate-100;
+}
+.text-description {
+  @apply text-slate-500 dark:text-slate-400;
+}
+.text-emphasized {
+  @apply text-amber-500 dark:text-amber-400;
+}

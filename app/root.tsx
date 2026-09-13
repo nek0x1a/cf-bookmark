@@ -22,7 +22,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Links />
       </head>
       <body>
-        <div className="page-framework my-16">{children}</div>
+        <div className="page-framework">{children}</div>
         <ScrollRestoration />
         <Scripts />
       </body>
@@ -53,10 +53,10 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   return (
     <main>
       <h1 className="text-4xl">{message}</h1>
-      <p className="text-sm text-slate-400">来源: {errSource}</p>
+      <p className="text-sm text-description">来源: {errSource}</p>
       <p className="my-4">{details}</p>
       {stack && (
-        <pre className="my-2 p-2 bg-slate-800 border border-slate-900 rounded-md overflow-x-auto">
+        <pre className="my-2 p-2 bg-slate-800 dark:bg-slate-500 border border-slate-900 dark:border-slate-700 rounded-md overflow-x-auto">
           <code>{stack}</code>
         </pre>
       )}
