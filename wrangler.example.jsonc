@@ -7,9 +7,7 @@
   "name": "cf-bookmark",
   "compatibility_date": "2026-09-07",
   "main": "./workers/app.ts",
-  "vars": {
-    "VALUE_FROM_CLOUDFLARE": "Hello from Cloudflare"
-  },
+  "vars": {},
   "observability": {
     "enabled": true
   },
@@ -17,8 +15,8 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "bookmark-db",
-      "database_id": "2d7c8149-93d1-4b6b-8b82-51aa5ca305fc"
+      "database_name": "", // 填入d1数据库名称
+      "database_id": "" // 填入d1数据库ID
     }
   ]
   /**
