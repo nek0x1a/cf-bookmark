@@ -7,18 +7,15 @@ function isIconName(value: string): value is IconName {
 }
 
 export default function Bookmark({
-  name,
-  href,
-  icon,
-  description,
+  bookmarkData,
   emphasized = false,
   ...restProps
 }: {
+  bookmarkData: BookmarkData;
   emphasized?: boolean;
-} & BookmarkData &
-  ComponentProps<"a">) {
+} & ComponentProps<"a">) {
   const iconSize = emphasized ? "2rem" : "1rem";
-  const normalizedIcon = icon.toLowerCase();
+  const normalizedIcon = bookmarkData.icon.toLowerCase();
   const iconName: IconName = isIconName(normalizedIcon) ? normalizedIcon : "x";
   const iconElement = isIconName(normalizedIcon) ? (
     <DynamicIcon name={iconName} size={iconSize} />
@@ -30,8 +27,10 @@ export default function Bookmark({
         {iconElement}
       </div>
       <div>
-        <div className="text-emphasized">{name}</div>
-        {description ? <div className="text-xs">{description}</div> : null}
+        <div className="text-emphasized">{bookmarkData.name}</div>
+        {bookmarkData.description ? (
+          <div className="text-xs">{bookmarkData.description}</div>
+        ) : null}
       </div>
     </>
   ) : (
@@ -39,11 +38,11 @@ export default function Bookmark({
       <div className="w-4 overflow-hidden flex-none flex items-center justify-center">
         {iconElement}
       </div>
-      <div className="text-normal">{name}</div>
+      <div className="text-normal">{bookmarkData.name}</div>
     </>
   );
   return (
-    <a href={href} target="_blank" rel="noreferrer" {...restProps}>
+    <a href={bookmarkData.href} target="_blank" rel="noreferrer" {...restProps}>
       <div className="flex gap-2 rounded-md p-2 hover:bg-slate-900 transition duration-150">
         {bookmarkElement}
       </div>
@@ -52,35 +51,31 @@ export default function Bookmark({
 }
 
 export function BookmarkGroup({
-  name,
-  bookmarks,
-  emphasized = false,
-  description = "",
+  bookmarkGroupData,
   ...restProps
-}: BookmarkGroupData & ComponentProps<"div">) {
-  const bookmarkElement = bookmarks.map((bookmark) => {
+}: { bookmarkGroupData: BookmarkGroupData } & ComponentProps<"div">) {
+  const bookmarkElement = bookmarkGroupData.bookmarks.map((bookmark) => {
     return (
       <Bookmark
-        name={bookmark.name}
-        href={bookmark.href}
-        icon={bookmark.icon}
-        description={bookmark.description}
-        emphasized={emphasized}
-        key={bookmark.name}
+        bookmarkData={bookmark}
+        emphasized={bookmarkGroupData.emphasized}
+        key={bookmark.id}
       ></Bookmark>
     );
   });
 
-  return emphasized ? (
+  return bookmarkGroupData.emphasized ? (
     <div {...restProps}>
       <h2 className="col-start-1 -col-end-1 text-3xl font-bold text-emphasized">
-        {name}
+        {bookmarkGroupData.name}
       </h2>
       {bookmarkElement}
     </div>
   ) : (
     <div {...restProps}>
-      <h2 className="text-lg mt-0 mb-2 text-emphasized">{name}</h2>
+      <h2 className="text-lg mt-0 mb-2 text-emphasized">
+        {bookmarkGroupData.name}
+      </h2>
       <div className="flex flex-col gap-x-2">{bookmarkElement}</div>
     </div>
   );

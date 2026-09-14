@@ -15,7 +15,7 @@ export function meta(_: Route.MetaArgs) {
 export async function loader() {
   const db = env.DB;
   const bookmarkdata = await getBookmarks(db);
-  return { bookmarkdata: bookmarkdata };
+  return { bookmarkdata: [...bookmarkdata] };
 }
 
 export default function Home({ loaderData }: Route.ComponentProps) {
@@ -24,21 +24,14 @@ export default function Home({ loaderData }: Route.ComponentProps) {
     .map((group) => (
       <BookmarkGroup
         className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(12em,1fr))]"
-        name={group.name}
-        emphasized={group.emphasized}
-        bookmarks={group.bookmarks}
-        key={group.name}
+        bookmarkGroupData={group}
+        key={group.id}
       ></BookmarkGroup>
     ));
   const bookmarkNormalGroups = loaderData.bookmarkdata
     .filter((group) => !group.emphasized)
     .map((group) => (
-      <BookmarkGroup
-        name={group.name}
-        emphasized={group.emphasized}
-        bookmarks={group.bookmarks}
-        key={group.name}
-      ></BookmarkGroup>
+      <BookmarkGroup bookmarkGroupData={group} key={group.id}></BookmarkGroup>
     ));
 
   return (
