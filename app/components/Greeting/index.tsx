@@ -1,23 +1,26 @@
 import { type ComponentProps, useEffect, useState } from "react";
 
-/**
- * 时间、问候语
- */
+function useCurrentSecond() {
+  const [date, setDate] = useState(() => new Date());
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>;
+    const tick = () => {
+      setDate(new Date());
+      const delay = 1000 - new Date().getMilliseconds();
+      timer = setTimeout(tick, delay);
+    };
+    tick();
+    return () => clearTimeout(timer);
+  }, []);
+  return date;
+}
+
 export default function Greeting({
   helloStr = "喵 >w< ~",
   children,
   ...restProps
 }: { helloStr?: string } & ComponentProps<"div">) {
-  const [currentDate, setCurrentDate] = useState(new Date());
-  useEffect(() => {
-    /** 每秒更新时间 */
-    const timer = setInterval(() => {
-      setCurrentDate(new Date());
-    }, 1000);
-    return () => {
-      clearInterval(timer);
-    };
-  }, []);
+  const currentDate = useCurrentSecond();
   return (
     <div {...restProps}>
       <div className="flex flex-col gap-4">

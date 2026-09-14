@@ -1,16 +1,10 @@
 import { DynamicIcon, type IconName, iconNames } from "lucide-react/dynamic";
 import type { ComponentProps } from "react";
+import type { BookmarkData, BookmarkGroupData } from "~/types/bookmark";
 
 function isIconName(value: string): value is IconName {
   return iconNames.includes(value as IconName);
 }
-
-type BookmarkData = {
-  name: string;
-  href: string;
-  icon: string;
-  description?: string;
-};
 
 export default function Bookmark({
   name,
@@ -20,11 +14,9 @@ export default function Bookmark({
   emphasized = false,
   ...restProps
 }: {
-  name: string;
-  icon: string;
-  description?: string;
   emphasized?: boolean;
-} & ComponentProps<"a">) {
+} & BookmarkData &
+  ComponentProps<"a">) {
   const iconSize = emphasized ? "2rem" : "1rem";
   const normalizedIcon = icon.toLowerCase();
   const iconName: IconName = isIconName(normalizedIcon) ? normalizedIcon : "x";
@@ -63,12 +55,9 @@ export function BookmarkGroup({
   name,
   bookmarks,
   emphasized = false,
+  description = "",
   ...restProps
-}: {
-  name: string;
-  bookmarks: Array<BookmarkData>;
-  emphasized?: boolean;
-} & ComponentProps<"div">) {
+}: BookmarkGroupData & ComponentProps<"div">) {
   const bookmarkElement = bookmarks.map((bookmark) => {
     return (
       <Bookmark
