@@ -1,8 +1,8 @@
 import { env } from "cloudflare:workers";
+import { getCachedBookmarks } from "~/cache/bookmarks";
 import { BookmarkGroup } from "~/components/Bookmark";
 import Footer from "~/components/Frame/Footer";
 import Greeting from "~/components/Greeting";
-import { getBookmarks } from "~/db/d1";
 import type { Route } from "./+types/home";
 
 export function meta(_: Route.MetaArgs) {
@@ -14,7 +14,7 @@ export function meta(_: Route.MetaArgs) {
 
 export async function loader() {
   const db = env.DB;
-  const bookmarkdata = await getBookmarks(db);
+  const bookmarkdata = await getCachedBookmarks(db);
   return { bookmarkdata: [...bookmarkdata] };
 }
 
