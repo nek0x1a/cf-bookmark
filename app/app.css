@@ -20,6 +20,7 @@ body {
   @apply w-[95%] md:w-[91%] lg:w-[88%] xl:w-[86%] 2xl:w-[85%];
   @apply md:min-w-[45.6rem] lg:min-w-[58.24rem] xl:min-w-[70.4rem] 2xl:min-w-[82.56rem];
   @apply 2xl:max-w-384 mx-auto;
+  @apply my-16;
 }
 
 .text-normal {

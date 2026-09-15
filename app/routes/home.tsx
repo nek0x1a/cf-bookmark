@@ -36,7 +36,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
 
   return (
     <>
-      <div className="flex flex-wrap gap-2 justify-between my-16">
+      <div className="flex flex-wrap gap-2 justify-between mb-16">
         <Greeting className="flex-none" />
         <div className="flex-none">[编辑]</div>
       </div>
