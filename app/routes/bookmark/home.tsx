@@ -1,7 +1,7 @@
 import { env } from "cloudflare:workers";
+import { Link } from "react-router";
 import { getCachedBookmarks } from "~/cache/bookmarks";
 import { BookmarkGroup } from "~/components/Bookmark";
-import Footer from "~/components/Frame/Footer";
 import Greeting from "~/components/Greeting";
 import type { Route } from "./+types/home";
 
@@ -38,7 +38,9 @@ export default function Home({ loaderData }: Route.ComponentProps) {
     <>
       <div className="flex flex-wrap gap-2 justify-between mb-16">
         <Greeting className="flex-none" />
-        <div className="flex-none">[编辑]</div>
+        <div className="flex-none">
+          <Link to="/bookmark/edit">[编辑]</Link>
+        </div>
       </div>
       <main className="flex flex-col gap-8">
         {bookmarkEmphasizedGroups}
@@ -46,8 +48,6 @@ export default function Home({ loaderData }: Route.ComponentProps) {
           {bookmarkNormalGroups}
         </div>
       </main>
-
-      <Footer className="my-8" />
     </>
   );
 }

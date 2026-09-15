@@ -9,6 +9,7 @@ import {
 
 import type { Route } from "./+types/root";
 import "./app.css";
+import Footer from "./components/Frame/Footer";
 
 export const links: Route.LinksFunction = () => [];
 
@@ -21,8 +22,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Meta />
         <Links />
       </head>
-      <body>
-        <div className="page-framework">{children}</div>
+      <body className="page-framework">
+        {children}
+        <Footer className="my-8" />
         <ScrollRestoration />
         <Scripts />
       </body>
