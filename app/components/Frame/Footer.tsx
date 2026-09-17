@@ -10,7 +10,7 @@ export default function Footer({
 }: { footerStr?: string } & ComponentProps<"footer">) {
   return (
     <footer {...restProps}>
-      <div className="flex justify-center text-sm text-description">
+      <div className="flex justify-center text-sm text-muted-foreground">
         <span>{footerStr}</span>
       </div>
     </footer>

@@ -1,7 +1,20 @@
+import { cn } from "cn";
 import { Star } from "lucide-react";
 import { DynamicIcon, type IconName, iconNames } from "lucide-react/dynamic";
 import type { ComponentProps } from "react";
 import type { BookmarkData, BookmarkGroupData } from "~/types/bookmark";
+import type { EditableField } from "./BookmarkField";
+import BookmarkField from "./BookmarkField";
+
+type BookmarkChange = (
+  bookmarkId: BookmarkData["id"],
+  changes: Partial<Pick<BookmarkData, EditableField>>,
+) => void;
+
+type BookmarkGroupChange = (
+  groupId: BookmarkGroupData["id"],
+  changes: Partial<Pick<BookmarkGroupData, "emphasized">>,
+) => void;
 
 function isIconName(value: string): value is IconName {
   return iconNames.includes(value as IconName);
@@ -9,9 +22,11 @@ function isIconName(value: string): value is IconName {
 
 export default function BookmarkEdit({
   bookmarkData,
+  onBookmarkChange,
   ...restProps
 }: {
   bookmarkData: BookmarkData;
+  onBookmarkChange: BookmarkChange;
 } & ComponentProps<"div">) {
   const normalizedIcon = bookmarkData.icon.toLowerCase();
   const iconName: IconName = isIconName(normalizedIcon) ? normalizedIcon : "x";
@@ -20,25 +35,88 @@ export default function BookmarkEdit({
   ) : null;
 
   return (
-    <div {...restProps}>
-      <div className="flex gap-2 px-4 py-2 hover:bg-slate-900 transition duration-150">
-        <div className="w-8 overflow-hidden flex-none flex items-center justify-center">
+    <div
+      className={cn(
+        "px-4 py-2",
+        "flex flex-col gap-2",
+        "hover:bg-background-hover",
+        "transition duration-150",
+      )}
+      {...restProps}
+    >
+      <div className="flex gap-2">
+        <div
+          className={cn(
+            "w-8 overflow-hidden",
+            "flex flex-none",
+            "items-center justify-center",
+          )}
+        >
           {iconElement}
         </div>
-        <div className="w-full">
-          <div className="flex gap-2 justify-between">
-            <div className="flex-none text-emphasized">{bookmarkData.name}</div>
-            <div className="flex-none text-description">
-              {bookmarkData.icon}
-            </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-primary-foreground">
+            <BookmarkField
+              field="name"
+              value={bookmarkData.name}
+              className="text-primary-foreground"
+              onConfirm={(value) => {
+                onBookmarkChange(bookmarkData.id, {
+                  name: value,
+                });
+              }}
+            />
           </div>
-          <div className="text-description">{bookmarkData.href}</div>
-          {bookmarkData.description ? (
-            <div className="text-xs text-description">
-              {bookmarkData.description}
-            </div>
-          ) : null}
+
+          <div className={cn("flex-none", "text-xs text-muted-foreground")}>
+            <BookmarkField
+              field="icon"
+              value={bookmarkData.icon}
+              className="text-muted-foreground"
+              onConfirm={(value) => {
+                onBookmarkChange(bookmarkData.id, {
+                  icon: value,
+                });
+              }}
+            />
+          </div>
         </div>
+        <div className="flex-none">
+          <span
+            className={cn(
+              "px-1",
+              "text-xs text-muted",
+              "border border-muted rounded-sm",
+            )}
+          >
+            {bookmarkData.sort + 1}
+          </span>
+        </div>
+      </div>
+
+      <div className="flex-none">
+        <BookmarkField
+          field="href"
+          value={bookmarkData.href}
+          className="text-foreground break-all"
+          onConfirm={(value) => {
+            onBookmarkChange(bookmarkData.id, {
+              href: value,
+            });
+          }}
+        />
+      </div>
+      <div className="flex-none">
+        <BookmarkField
+          field="description"
+          value={bookmarkData.description}
+          className="min-h-4 text-foreground break-all"
+          onConfirm={(value) => {
+            onBookmarkChange(bookmarkData.id, {
+              description: value,
+            });
+          }}
+        />
       </div>
     </div>
   );
@@ -46,38 +124,65 @@ export default function BookmarkEdit({
 
 export function BookmarkGroupEdit({
   bookmarkGroupData,
+  onBookmarkChange,
+  onBookmarkGroupChange,
   ...restProps
-}: { bookmarkGroupData: BookmarkGroupData } & ComponentProps<"div">) {
-  const bookmarkElement = bookmarkGroupData.bookmarks
-    .sort((bookmark) => bookmark.sort)
-    .map((bookmark) => {
-      return (
-        <BookmarkEdit bookmarkData={bookmark} key={bookmark.id}></BookmarkEdit>
-      );
-    });
+}: {
+  bookmarkGroupData: BookmarkGroupData;
+  onBookmarkChange: BookmarkChange;
+  onBookmarkGroupChange: BookmarkGroupChange;
+} & ComponentProps<"div">) {
+  const bookmarkElement = [...bookmarkGroupData.bookmarks]
+    .sort((a, b) => a.sort - b.sort)
+    .map((bookmark) => (
+      <BookmarkEdit
+        bookmarkData={bookmark}
+        key={bookmark.id}
+        onBookmarkChange={onBookmarkChange}
+      />
+    ));
+
   return (
     <div
-      className={
+      className={cn(
+        "mb-4 border",
         bookmarkGroupData.emphasized
-          ? "border border-amber-500 hover:border-amber-400 rounded-md duration-200"
-          : "border border-slate-500 hover:border-slate-400 rounded-md duration-200"
-      }
+          ? "border-primary-foreground hover:border-primary-foreground-hover"
+          : "border-border hover:border-border-hover",
+        "rounded-md duration-200",
+        "break-inside-avoid",
+      )}
       {...restProps}
     >
       <div className="p-4 flex gap-2 justify-between">
-        <h2 className="flex-none col-start-1 -col-end-1 text-3xl text-normal">
-          {bookmarkGroupData.name}
-        </h2>
+        <h2 className="flex-none text-3xl">{bookmarkGroupData.name}</h2>
         <div className="flex-none">
           <span
-            className={
+            className={cn(
+              "px-1",
+              "text-xs text-muted",
+              "border border-muted rounded-sm",
+            )}
+          >
+            {bookmarkGroupData.sort + 1}
+          </span>
+        </div>
+        <div className="flex-none ml-auto">
+          <button
+            type="button"
+            className={cn(
               bookmarkGroupData.emphasized
-                ? "text-amber-500 hover:text-amber-300"
-                : "text-slate-100 hover:text-amber-300"
-            }
+                ? "text-primary-foreground hover:text-primary-foreground-hover"
+                : "text-muted-foreground hover:text-primary-foreground-hover",
+            )}
+            onClick={() => {
+              onBookmarkGroupChange(bookmarkGroupData.id, {
+                emphasized: !bookmarkGroupData.emphasized,
+              });
+            }}
           >
             <Star size="1rem" />
-          </span>
+          </button>
         </div>
       </div>
 

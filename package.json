@@ -12,6 +12,7 @@
 		"postinstall": "wrangler types"
 	},
 	"dependencies": {
+		"cn": "^0.3.0",
 		"isbot": "^5.1.36",
 		"lucide-react": "^1.45.0",
 		"react": "^19.2.7",

@@ -9,13 +9,14 @@ import {
 
 import type { Route } from "./+types/root";
 import "./app.css";
+import { cn } from "cn";
 import Footer from "./components/Frame/Footer";
 
 export const links: Route.LinksFunction = () => [];
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="zh-Hans">
+    <html lang="zh-Hans" data-theme="dark">
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -55,10 +56,16 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   return (
     <main>
       <h1 className="text-4xl">{message}</h1>
-      <p className="text-sm text-description">来源: {errSource}</p>
+      <p className="my-2 text-sm text-muted-foreground">来源: {errSource}</p>
       <p className="my-4">{details}</p>
       {stack && (
-        <pre className="my-2 p-2 bg-slate-800 dark:bg-slate-500 border border-slate-900 dark:border-slate-700 rounded-md overflow-x-auto">
+        <pre
+          className={cn(
+            "my-2 p-2 bg-muted",
+            "border border-border rounded-md",
+            "overflow-x-auto",
+          )}
+        >
           <code>{stack}</code>
         </pre>
       )}

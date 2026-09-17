@@ -1,3 +1,4 @@
+import { cn } from "cn";
 import { DynamicIcon, type IconName, iconNames } from "lucide-react/dynamic";
 import type { ComponentProps } from "react";
 import type { BookmarkData, BookmarkGroupData } from "~/types/bookmark";
@@ -23,11 +24,16 @@ export default function Bookmark({
 
   const bookmarkElement = emphasized ? (
     <>
-      <div className="w-8 overflow-hidden flex-none flex items-center justify-center">
+      <div
+        className={cn(
+          "w-8 overflow-hidden",
+          "flex-none flex items-center justify-center",
+        )}
+      >
         {iconElement}
       </div>
       <div>
-        <div className="text-emphasized">{bookmarkData.name}</div>
+        <div className="text-primary-foreground">{bookmarkData.name}</div>
         {bookmarkData.description ? (
           <div className="text-xs">{bookmarkData.description}</div>
         ) : null}
@@ -35,15 +41,27 @@ export default function Bookmark({
     </>
   ) : (
     <>
-      <div className="w-4 overflow-hidden flex-none flex items-center justify-center">
+      <div
+        className={cn(
+          "w-4 overflow-hidden",
+          "flex-none flex items-center justify-center",
+        )}
+      >
         {iconElement}
       </div>
-      <div className="text-normal">{bookmarkData.name}</div>
+      <div>{bookmarkData.name}</div>
     </>
   );
   return (
     <a href={bookmarkData.href} target="_blank" rel="noreferrer" {...restProps}>
-      <div className="flex gap-2 rounded-md p-2 hover:bg-slate-900 transition duration-150">
+      <div
+        className={cn(
+          "p-2 rounded-md",
+          "flex gap-2",
+          "hover:bg-background-hover",
+          "transition duration-150",
+        )}
+      >
         {bookmarkElement}
       </div>
     </a>
@@ -66,14 +84,19 @@ export function BookmarkGroup({
 
   return bookmarkGroupData.emphasized ? (
     <div {...restProps}>
-      <h2 className="col-start-1 -col-end-1 text-3xl font-bold text-emphasized">
+      <h2
+        className={cn(
+          "col-start-1 -col-end-1",
+          "text-3xl font-bold text-primary-foreground",
+        )}
+      >
         {bookmarkGroupData.name}
       </h2>
       {bookmarkElement}
     </div>
   ) : (
     <div {...restProps}>
-      <h2 className="text-lg mt-0 mb-2 text-emphasized">
+      <h2 className={cn("mt-0 mb-2", "text-lg text-primary-foreground")}>
         {bookmarkGroupData.name}
       </h2>
       <div className="flex flex-col gap-x-2">{bookmarkElement}</div>
