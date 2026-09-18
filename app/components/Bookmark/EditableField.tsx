@@ -2,12 +2,10 @@ import { cn } from "cn";
 import type { KeyboardEvent } from "react";
 import { useEffect, useRef, useState } from "react";
 
-export type EditableField = "name" | "icon" | "href" | "description";
-
 export type EditableFieldProps = {
-  field: EditableField;
   value: string;
   className?: string;
+  multiline?: boolean;
   onConfirm: (value: string) => void;
 };
 
@@ -16,10 +14,10 @@ const adjustTextareaHeight = (textarea: HTMLTextAreaElement) => {
   textarea.style.height = `${textarea.scrollHeight}px`;
 };
 
-export default function BookmarkField({
-  field,
+export default function EditableField({
   value,
   className = "",
+  multiline = false,
   onConfirm,
 }: EditableFieldProps) {
   const [editing, setEditing] = useState(false);
@@ -28,21 +26,43 @@ export default function BookmarkField({
   const inputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const isSingleLine = field === "name" || field === "icon";
+  /**
+   * Keyboard 操作会导致 input / textarea 随后触发 blur。
+   *
+   * 使用这个 ref 避免：
+   * - Escape 取消后又被 blur 确认
+   * - Enter 确认后又被 blur 重复确认
+   */
+  const skipBlurRef = useRef(false);
 
   const startEditing = () => {
+    skipBlurRef.current = false;
+
     setEditingValue(value);
     setEditing(true);
   };
 
   const cancelEditing = () => {
-    setEditing(false);
+    skipBlurRef.current = true;
+
     setEditingValue(value);
+    setEditing(false);
   };
 
   const confirmEditing = () => {
+    skipBlurRef.current = true;
+
     onConfirm(editingValue);
     setEditing(false);
+  };
+
+  const handleBlur = () => {
+    if (skipBlurRef.current) {
+      skipBlurRef.current = false;
+      return;
+    }
+
+    confirmEditing();
   };
 
   const handleChange = (
@@ -61,18 +81,21 @@ export default function BookmarkField({
     if (!editing) {
       return;
     }
-    if (isSingleLine) {
+
+    if (!multiline) {
       inputRef.current?.focus();
       inputRef.current?.select();
       return;
     }
+
     const textarea = textareaRef.current;
+
     if (textarea) {
       adjustTextareaHeight(textarea);
       textarea.focus();
       textarea.select();
     }
-  }, [editing, isSingleLine]);
+  }, [editing, multiline]);
 
   const handleKeyDown = (
     event: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>,
@@ -90,15 +113,19 @@ export default function BookmarkField({
   };
 
   if (editing) {
-    if (isSingleLine) {
+    if (!multiline) {
       return (
         <input
           ref={inputRef}
           type="text"
           value={editingValue}
           onChange={handleChange}
-          onBlur={confirmEditing}
+          onBlur={handleBlur}
           onKeyDown={handleKeyDown}
+          onPointerDown={(event) => {
+            event.stopPropagation();
+          }}
+          data-drag-blocked="true"
           className={cn(
             className,
             "w-full px-1",
@@ -113,8 +140,12 @@ export default function BookmarkField({
         ref={textareaRef}
         value={editingValue}
         onChange={handleChange}
-        onBlur={confirmEditing}
+        onBlur={handleBlur}
         onKeyDown={handleKeyDown}
+        onPointerDown={(event) => {
+          event.stopPropagation();
+        }}
+        data-drag-blocked="true"
         className={cn(
           className,
           "w-full px-1",
@@ -128,12 +159,16 @@ export default function BookmarkField({
   return (
     <button
       type="button"
+      data-drag-blocked="true"
       className={cn(
         "w-full block bg-transparent",
         "text-left",
         className,
         !value ? "border border-muted border-dashed rounded" : "",
       )}
+      onPointerDown={(event) => {
+        event.stopPropagation();
+      }}
       onDoubleClick={startEditing}
     >
       {value}

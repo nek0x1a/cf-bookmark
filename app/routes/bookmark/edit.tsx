@@ -1,5 +1,5 @@
 import { env } from "cloudflare:workers";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { BookmarkGroupEdit } from "~/components/Bookmark/BookmarkGroupEdit";
 import { getBookmarks } from "~/db/d1";
 import type { BookmarkData, BookmarkGroupData } from "~/types/bookmark";
@@ -9,7 +9,10 @@ import { useBookmarkDragAndDrop } from "./useBookmarkDragAndDrop";
 export function meta(_: Route.MetaArgs) {
   return [
     { title: "编辑书签" },
-    { name: "description", content: "书签编辑页面" },
+    {
+      name: "description",
+      content: "书签编辑页面",
+    },
   ];
 }
 
@@ -17,7 +20,9 @@ export async function loader() {
   const db = env.DB;
   const bookmarkdata = await getBookmarks(db);
 
-  return { bookmarkdata: [...bookmarkdata] };
+  return {
+    bookmarkdata: [...bookmarkdata],
+  };
 }
 
 export default function EditBookmark({ loaderData }: Route.ComponentProps) {
@@ -34,44 +39,54 @@ export default function EditBookmark({ loaderData }: Route.ComponentProps) {
     registerBookmarkRef,
     handleGroupPointerDown,
     handleBookmarkPointerDown,
-  } = useBookmarkDragAndDrop({ setBookmarkData });
+  } = useBookmarkDragAndDrop({
+    setBookmarkData,
+  });
 
-  const handleBookmarkChange = (
-    bookmarkId: BookmarkData["id"],
-    changes: Partial<
-      Pick<BookmarkData, "name" | "href" | "icon" | "description">
-    >,
-  ) => {
-    setBookmarkData((currentData) =>
-      currentData.map((group) => ({
-        ...group,
-        bookmarks: group.bookmarks.map((bookmark) =>
-          bookmark.id === bookmarkId
+  const handleBookmarkChange = useCallback(
+    (
+      bookmarkId: BookmarkData["id"],
+      changes: Partial<
+        Pick<BookmarkData, "name" | "href" | "icon" | "description">
+      >,
+    ) => {
+      setBookmarkData((currentData) =>
+        currentData.map((group) => ({
+          ...group,
+          bookmarks: group.bookmarks.map((bookmark) =>
+            bookmark.id === bookmarkId
+              ? {
+                  ...bookmark,
+                  ...changes,
+                }
+              : bookmark,
+          ),
+        })),
+      );
+    },
+    [],
+  );
+
+  const handleBookmarkGroupChange = useCallback(
+    (
+      groupId: BookmarkGroupData["id"],
+      changes: Partial<
+        Pick<BookmarkGroupData, "name" | "description" | "emphasized">
+      >,
+    ) => {
+      setBookmarkData((currentData) =>
+        currentData.map((group) =>
+          group.id === groupId
             ? {
-                ...bookmark,
+                ...group,
                 ...changes,
               }
-            : bookmark,
+            : group,
         ),
-      })),
-    );
-  };
-
-  const handleBookmarkGroupChange = (
-    groupId: BookmarkGroupData["id"],
-    changes: Partial<Pick<BookmarkGroupData, "emphasized">>,
-  ) => {
-    setBookmarkData((currentData) =>
-      currentData.map((group) =>
-        group.id === groupId
-          ? {
-              ...group,
-              ...changes,
-            }
-          : group,
-      ),
-    );
-  };
+      );
+    },
+    [],
+  );
 
   const groupElement = [...bookmarkData]
     .sort((a, b) => a.sort - b.sort)

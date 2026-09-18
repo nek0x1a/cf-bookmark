@@ -6,17 +6,19 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import type { BookmarkData } from "~/types/bookmark";
-import type { EditableField } from "./BookmarkField";
-import BookmarkField from "./BookmarkField";
+import EditableField from "./EditableField";
 
 type BookmarkChange = (
   bookmarkId: BookmarkData["id"],
-  changes: Partial<Pick<BookmarkData, EditableField>>,
+  changes: Partial<
+    Pick<BookmarkData, "name" | "href" | "icon" | "description">
+  >,
 ) => void;
 
 type BookmarkEditProps = {
   bookmarkData: BookmarkData;
   onBookmarkChange: BookmarkChange;
+  onPointerDown?: (event: ReactPointerEvent<HTMLDivElement>) => void;
 } & ComponentPropsWithoutRef<"div">;
 
 function isIconName(value: string): value is IconName {
@@ -41,6 +43,14 @@ const BookmarkEdit = forwardRef<HTMLDivElement, BookmarkEditProps>(
     const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
       onPointerDown?.(event);
 
+      /**
+       * Bookmark 本身负责处理 Bookmark drag，
+       * 所以这里不能再让 pointerdown 冒泡给
+       * BookmarkGroupEdit。
+       *
+       * EditableField 自己还会在更内层阻止事件，
+       * 因而不会启动 Bookmark drag。
+       */
       if (onPointerDown) {
         event.stopPropagation();
       }
@@ -51,7 +61,6 @@ const BookmarkEdit = forwardRef<HTMLDivElement, BookmarkEditProps>(
         ref={ref}
         data-bookmark-item="true"
         className={cn(
-          "px-4 py-2",
           "flex flex-col gap-2",
           "hover:bg-background-hover",
           "transition duration-150",
@@ -73,8 +82,7 @@ const BookmarkEdit = forwardRef<HTMLDivElement, BookmarkEditProps>(
 
           <div className="flex-1 min-w-0">
             <div className="text-primary-foreground">
-              <BookmarkField
-                field="name"
+              <EditableField
                 value={bookmarkData.name}
                 className="text-primary-foreground"
                 onConfirm={(value) => {
@@ -86,8 +94,7 @@ const BookmarkEdit = forwardRef<HTMLDivElement, BookmarkEditProps>(
             </div>
 
             <div className={cn("flex-none", "text-xs text-muted-foreground")}>
-              <BookmarkField
-                field="icon"
+              <EditableField
                 value={bookmarkData.icon}
                 className="text-muted-foreground"
                 onConfirm={(value) => {
@@ -98,13 +105,24 @@ const BookmarkEdit = forwardRef<HTMLDivElement, BookmarkEditProps>(
               />
             </div>
           </div>
+          <div className="flex-none ml-auto">
+            <span
+              className={cn(
+                "px-1",
+                "text-xs text-muted",
+                "border border-muted rounded-sm",
+              )}
+            >
+              {bookmarkData.sort + 1}
+            </span>
+          </div>
         </div>
 
         <div className="flex-none">
-          <BookmarkField
-            field="href"
+          <EditableField
             value={bookmarkData.href}
             className="text-foreground break-all"
+            multiline
             onConfirm={(value) => {
               onBookmarkChange(bookmarkData.id, {
                 href: value,
@@ -114,10 +132,10 @@ const BookmarkEdit = forwardRef<HTMLDivElement, BookmarkEditProps>(
         </div>
 
         <div className="flex-none">
-          <BookmarkField
-            field="description"
+          <EditableField
             value={bookmarkData.description}
             className="min-h-4 text-foreground break-all"
+            multiline
             onConfirm={(value) => {
               onBookmarkChange(bookmarkData.id, {
                 description: value,

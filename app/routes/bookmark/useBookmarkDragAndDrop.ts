@@ -11,17 +11,16 @@ import type { BookmarkData, BookmarkGroupData } from "~/types/bookmark";
 import {
   type BookmarkDragState,
   type BookmarkElement,
-  DRAG_EXCLUDED_SELECTOR,
   type DragPreview,
   type DragState,
   type DropTarget,
   type GroupDragState,
   type GroupElement,
   getDropTarget,
+  isDragBlockedTarget,
   isSameDropTarget,
-  moveBookmark,
-  moveGroup,
 } from "./bookmarkDragAndDrop";
+import { moveBookmark, moveGroup } from "./bookmarkSort";
 
 export type GroupRefCallback = (
   groupId: BookmarkGroupData["id"],
@@ -65,6 +64,7 @@ export function useBookmarkDragAndDrop({
   >(null);
 
   const [dragPreview, setDragPreview] = useState<DragPreview | null>(null);
+
   const [dropTarget, setDropTarget] = useState<DropTarget | null>(null);
 
   const groupElementsRef = useRef(
@@ -76,7 +76,13 @@ export function useBookmarkDragAndDrop({
   );
 
   const dragStateRef = useRef<DragState | null>(null);
+
   const dropTargetRef = useRef<DropTarget | null>(null);
+
+  const bodyStyleRef = useRef<{
+    userSelect: string;
+    cursor: string;
+  } | null>(null);
 
   const registerGroupRef = useCallback<GroupRefCallback>(
     (groupId, index, element) => {
@@ -117,6 +123,7 @@ export function useBookmarkDragAndDrop({
     dropTargetRef.current = null;
 
     setDraggingGroupId(drag.type === "group" ? drag.groupId : null);
+
     setDraggingBookmarkId(drag.type === "bookmark" ? drag.bookmarkId : null);
 
     setDragPreview({
@@ -128,17 +135,25 @@ export function useBookmarkDragAndDrop({
 
     setDropTarget(null);
 
-    event.currentTarget.setPointerCapture(event.pointerId);
+    bodyStyleRef.current = {
+      userSelect: document.body.style.userSelect,
+      cursor: document.body.style.cursor,
+    };
+
+    document.body.style.userSelect = "none";
+
+    document.body.style.cursor = "grabbing";
 
     /**
-     * Group 拖拽原本就需要 preventDefault。
+     * 到这里已经确定：
+     * 当前 pointerdown 来自拖拽区域。
      *
-     * Bookmark 则不能这样做：
-     * BookmarkField 依赖 click / doubleClick 进入编辑状态。
+     * 因此 preventDefault 不会影响
+     * EditableField / Star 的交互。
      */
-    if (drag.type === "group") {
-      event.preventDefault();
-    }
+    event.preventDefault();
+
+    event.currentTarget.setPointerCapture(event.pointerId);
   };
 
   const handleGroupPointerDown: GroupPointerDownHandler = (
@@ -150,28 +165,12 @@ export function useBookmarkDragAndDrop({
       return;
     }
 
-    /**
-     * Group 自身的交互控件不能启动 Group 拖拽。
-     *
-     * BookmarkEdit 还会主动 stopPropagation，
-     * 这里再做一次 data attribute 检查，
-     * 这样即使事件链发生变化，也不会把 Bookmark 当成 Group。
-     */
-    if (
-      event.target instanceof Element &&
-      event.target.closest(DRAG_EXCLUDED_SELECTOR)
-    ) {
-      return;
-    }
-
-    if (
-      event.target instanceof Element &&
-      event.target.closest("[data-bookmark-item]")
-    ) {
+    if (isDragBlockedTarget(event.target)) {
       return;
     }
 
     const element = event.currentTarget;
+
     const rect = element.getBoundingClientRect();
 
     const drag: GroupDragState = {
@@ -198,7 +197,12 @@ export function useBookmarkDragAndDrop({
       return;
     }
 
+    if (isDragBlockedTarget(event.target)) {
+      return;
+    }
+
     const element = event.currentTarget;
+
     const rect = element.getBoundingClientRect();
 
     const drag: BookmarkDragState = {
@@ -217,14 +221,19 @@ export function useBookmarkDragAndDrop({
   };
 
   useEffect(() => {
-    if (draggingGroupId === null && draggingBookmarkId === null) {
-      return;
-    }
+    const restoreBodyStyle = () => {
+      const previousStyle = bodyStyleRef.current;
 
-    if (dragStateRef.current === null) {
-      return;
-    }
+      if (!previousStyle) {
+        return;
+      }
 
+      document.body.style.userSelect = previousStyle.userSelect;
+
+      document.body.style.cursor = previousStyle.cursor;
+
+      bodyStyleRef.current = null;
+    };
     const clearDragState = () => {
       dragStateRef.current = null;
       dropTargetRef.current = null;
@@ -233,14 +242,9 @@ export function useBookmarkDragAndDrop({
       setDraggingBookmarkId(null);
       setDragPreview(null);
       setDropTarget(null);
+
+      restoreBodyStyle();
     };
-
-    const previousUserSelect = document.body.style.userSelect;
-    const previousCursor = document.body.style.cursor;
-
-    document.body.style.userSelect = "none";
-    document.body.style.cursor = "grabbing";
-
     const handlePointerMove = (event: PointerEvent) => {
       const drag = dragStateRef.current;
 
@@ -265,6 +269,7 @@ export function useBookmarkDragAndDrop({
 
       if (!isSameDropTarget(dropTargetRef.current, nextDropTarget)) {
         dropTargetRef.current = nextDropTarget;
+
         setDropTarget(nextDropTarget);
       }
     };
@@ -279,10 +284,12 @@ export function useBookmarkDragAndDrop({
       const target = dropTargetRef.current;
 
       /**
-       * 和原来的 Group 拖拽保持一致：
+       * pointermove 只负责计算：
        *
-       * pointermove 只更新预览和 drop target，
-       * 真正修改 bookmarkData 必须等 pointerup。
+       * - drag preview
+       * - drop target
+       *
+       * 真正的 state 修改只发生在 pointerup。
        */
       if (target) {
         setBookmarkData((currentData) => {
@@ -312,26 +319,34 @@ export function useBookmarkDragAndDrop({
     };
 
     window.addEventListener("pointermove", handlePointerMove);
+
     window.addEventListener("pointerup", handlePointerUp);
+
     window.addEventListener("pointercancel", handlePointerCancel);
 
     return () => {
       window.removeEventListener("pointermove", handlePointerMove);
+
       window.removeEventListener("pointerup", handlePointerUp);
+
       window.removeEventListener("pointercancel", handlePointerCancel);
 
-      document.body.style.userSelect = previousUserSelect;
-      document.body.style.cursor = previousCursor;
+      restoreBodyStyle();
+
+      dragStateRef.current = null;
+      dropTargetRef.current = null;
     };
-  }, [draggingBookmarkId, draggingGroupId, setBookmarkData]);
+  }, [setBookmarkData]);
 
   return {
     draggingGroupId,
     draggingBookmarkId,
     dragPreview,
     dropTarget,
+
     registerGroupRef,
     registerBookmarkRef,
+
     handleGroupPointerDown,
     handleBookmarkPointerDown,
   };

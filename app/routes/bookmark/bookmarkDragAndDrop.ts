@@ -1,11 +1,16 @@
 import type { BookmarkData, BookmarkGroupData } from "~/types/bookmark";
 
-export const DRAG_EXCLUDED_SELECTOR =
-  "button, input, textarea, select, option, a, [contenteditable='true']";
+export const DRAG_BLOCKED_SELECTOR = "[data-drag-blocked='true']";
 
 const DROP_HIT_SLOP = 32;
 const DROP_INDICATOR_HEIGHT = 6;
 const DROP_EDGE_OFFSET = 6;
+
+export function isDragBlockedTarget(target: EventTarget | null) {
+  return (
+    target instanceof Element && target.closest(DRAG_BLOCKED_SELECTOR) !== null
+  );
+}
 
 type DragBox = {
   pointerId: number;
@@ -70,18 +75,20 @@ export type BookmarkElement = {
   element: HTMLDivElement;
 };
 
+type MeasuredGroupElement = GroupElement & {
+  rect: DOMRect;
+};
+
+type MeasuredBookmarkElement = BookmarkElement & {
+  rect: DOMRect;
+};
+
 function distanceToRect(clientX: number, clientY: number, rect: DOMRect) {
   const x = Math.max(rect.left - clientX, 0, clientX - rect.right);
+
   const y = Math.max(rect.top - clientY, 0, clientY - rect.bottom);
 
   return Math.sqrt(x * x + y * y);
-}
-
-function normalizeBookmarks(bookmarks: BookmarkData[]) {
-  return bookmarks.map((bookmark, index) => ({
-    ...bookmark,
-    sort: index,
-  }));
 }
 
 function isNoOpBookmarkSlot(
@@ -115,142 +122,85 @@ export function isSameDropTarget(a: DropTarget | null, b: DropTarget | null) {
   return false;
 }
 
-export function moveGroup(
-  currentData: BookmarkGroupData[],
-  drag: GroupDragState,
-  target: GroupDropTarget,
-) {
-  const groups = [...currentData].sort((a, b) => a.sort - b.sort);
-
-  const fromIndex = groups.findIndex((group) => group.id === drag.groupId);
-
-  if (
-    fromIndex === -1 ||
-    target.index === fromIndex ||
-    target.index === fromIndex + 1
-  ) {
-    return currentData;
-  }
-
-  const [movedGroup] = groups.splice(fromIndex, 1);
-
-  if (!movedGroup) {
-    return currentData;
-  }
-
-  const insertIndex =
-    fromIndex < target.index ? target.index - 1 : target.index;
-
-  groups.splice(insertIndex, 0, movedGroup);
-
-  return groups.map((group, index) => ({
-    ...group,
-    sort: index,
-  }));
-}
-
-export function moveBookmark(
-  currentData: BookmarkGroupData[],
-  drag: BookmarkDragState,
-  target: BookmarkDropTarget,
-) {
-  const sourceGroup = currentData.find((group) => group.id === drag.groupId);
-
-  const targetGroup = currentData.find((group) => group.id === target.groupId);
-
-  if (!sourceGroup || !targetGroup) {
-    return currentData;
-  }
-
-  const sourceBookmarks = [...sourceGroup.bookmarks].sort(
-    (a, b) => a.sort - b.sort,
-  );
-
-  const fromIndex = sourceBookmarks.findIndex(
-    (bookmark) => bookmark.id === drag.bookmarkId,
-  );
-
-  if (fromIndex === -1) {
-    return currentData;
-  }
-
-  const [movedBookmark] = sourceBookmarks.splice(fromIndex, 1);
-
-  if (!movedBookmark) {
-    return currentData;
-  }
-
-  /**
-   * 同组移动：
-   *
-   * target.index 是“删除拖动元素之前”的 slot。
-   * 如果被拖动元素位于 target 前面，
-   * 删除后实际插入位置要减一。
-   */
-  if (sourceGroup.id === targetGroup.id) {
-    const insertIndex =
-      fromIndex < target.index ? target.index - 1 : target.index;
-
-    sourceBookmarks.splice(insertIndex, 0, movedBookmark);
-
-    return currentData.map((group) =>
-      group.id === sourceGroup.id
-        ? {
-            ...group,
-            bookmarks: normalizeBookmarks(sourceBookmarks),
-          }
-        : group,
-    );
-  }
-
-  /**
-   * 跨组移动：
-   *
-   * 源组移除并重新编号，
-   * 目标组插入并重新编号。
-   */
-  const targetBookmarks = [...targetGroup.bookmarks].sort(
-    (a, b) => a.sort - b.sort,
-  );
-
-  targetBookmarks.splice(target.index, 0, movedBookmark);
-
-  return currentData.map((group) => {
-    if (group.id === sourceGroup.id) {
-      return {
-        ...group,
-        bookmarks: normalizeBookmarks(sourceBookmarks),
-      };
-    }
-
-    if (group.id === targetGroup.id) {
-      return {
-        ...group,
-        bookmarks: normalizeBookmarks(targetBookmarks),
-      };
-    }
-
-    return group;
-  });
-}
-
-function createBookmarkTarget(
+function createBookmarkSlotTarget(
   groupId: BookmarkGroupData["id"],
-  index: number,
-  rect: DOMRect,
-  before: boolean,
-): BookmarkDropTarget {
-  return {
-    type: "bookmark",
-    groupId,
-    index,
-    left: rect.left,
-    top: before
-      ? rect.top - DROP_EDGE_OFFSET - DROP_INDICATOR_HEIGHT
-      : rect.bottom + DROP_EDGE_OFFSET,
-    width: rect.width,
-    height: DROP_INDICATOR_HEIGHT,
-  };
+  slot: number,
+  bookmarks: MeasuredBookmarkElement[],
+): BookmarkDropTarget | null {
+  if (bookmarks.length === 0) {
+    return null;
+  }
+
+  const previous = [...bookmarks]
+    .filter((bookmark) => bookmark.index < slot)
+    .sort((a, b) => a.index - b.index)
+    .at(-1);
+
+  const next = bookmarks
+    .filter((bookmark) => bookmark.index >= slot)
+    .sort((a, b) => a.index - b.index)[0];
+
+  /**
+   * 第一个 Bookmark 之前。
+   */
+  if (slot === 0 && next) {
+    return {
+      type: "bookmark",
+      groupId,
+      index: slot,
+      left: next.rect.left,
+      top: next.rect.top - DROP_EDGE_OFFSET - DROP_INDICATOR_HEIGHT,
+      width: next.rect.width,
+      height: DROP_INDICATOR_HEIGHT,
+    };
+  }
+
+  const last = bookmarks.at(-1);
+
+  /**
+   * 最后一个 Bookmark 之后。
+   */
+  if (last && slot === last.index + 1) {
+    return {
+      type: "bookmark",
+      groupId,
+      index: slot,
+      left: last.rect.left,
+      top: last.rect.bottom + DROP_EDGE_OFFSET,
+      width: last.rect.width,
+      height: DROP_INDICATOR_HEIGHT,
+    };
+  }
+
+  /**
+   * 两个 Bookmark 之间。
+   *
+   * 无论这个 slot 最初是通过：
+   *
+   *   前一个 Bookmark 的 after
+   *
+   * 还是：
+   *
+   *   后一个 Bookmark 的 before
+   *
+   * 得到的，最终都统一落到这里。
+   */
+  if (previous && next) {
+    const gapCenter =
+      previous.rect.bottom + (next.rect.top - previous.rect.bottom) / 2;
+
+    return {
+      type: "bookmark",
+      groupId,
+      index: slot,
+      left: previous.rect.left,
+      top: gapCenter - DROP_INDICATOR_HEIGHT / 2,
+      width: previous.rect.width,
+      height: DROP_INDICATOR_HEIGHT,
+    };
+  }
+
+  return null;
 }
 
 function getGroupDropTarget(
@@ -280,6 +230,10 @@ function getGroupDropTarget(
 
     const nextSlot = before ? group.index : group.index + 1;
 
+    /**
+     * 当前 Group 的原位置前后两个 slot
+     * 都不是有效的移动位置。
+     */
     if (nextSlot === drag.groupIndex || nextSlot === drag.groupIndex + 1) {
       continue;
     }
@@ -295,6 +249,7 @@ function getGroupDropTarget(
   const byIndex = new Map(candidates.map((group) => [group.index, group]));
 
   const previous = byIndex.get(slot - 1);
+
   const next = byIndex.get(slot);
 
   const groupCount =
@@ -334,7 +289,7 @@ function getGroupDropTarget(
 
   /**
    * 两个 Group 在同一列时，
-   * 指示器放在 gap 的正中央。
+   * 指示器放在两者 gap 的正中央。
    */
   if (Math.abs(previous.rect.left - next.rect.left) < 2) {
     const gapCenter =
@@ -351,7 +306,10 @@ function getGroupDropTarget(
   }
 
   /**
-   * 如果 slot 横跨 CSS Columns 的列边界，
+   * CSS Columns 的列边界：
+   *
+   * 同一个逻辑 slot 两边的元素不在同一列，
+   * 此时无法取真实的垂直 gap，
    * 使用后一个 Group 顶部作为锚点。
    */
   return {
@@ -371,7 +329,7 @@ function getBookmarkDropTarget(
   bookmarks: Map<BookmarkData["id"], BookmarkElement>,
   groups: Map<BookmarkGroupData["id"], GroupElement>,
 ): BookmarkDropTarget | null {
-  const candidates = [...bookmarks.values()]
+  const candidates: MeasuredBookmarkElement[] = [...bookmarks.values()]
     .filter((bookmark) => bookmark.bookmarkId !== drag.bookmarkId)
     .map((bookmark) => ({
       ...bookmark,
@@ -380,11 +338,14 @@ function getBookmarkDropTarget(
 
   /**
    * 第一阶段：
-   * 优先判断鼠标附近具体的 Bookmark。
+   *
+   * 先寻找鼠标附近的 Bookmark，
+   * 从而确定用户当前意图进入哪个 slot。
    */
-  let nearest: (BookmarkElement & { rect: DOMRect }) | null = null;
+  let nearest: MeasuredBookmarkElement | null = null;
 
   let nearestSlot: number | null = null;
+
   let minDistance = Number.POSITIVE_INFINITY;
 
   for (const bookmark of candidates) {
@@ -399,17 +360,15 @@ function getBookmarkDropTarget(
     const slot = before ? bookmark.index : bookmark.index + 1;
 
     /**
-     * 原位置前后两个 slot 都不显示。
+     * 拖动元素自己的原始位置：
      *
-     * 例如：
+     *      A
+     *   [drag]
+     *      B
      *
-     * A [dragged] B
-     *
-     * dragged 的两个原始 slot：
-     * A 后面
-     * B 前面
-     *
-     * 其实都是“没动”。
+     * A 后面的 slot
+     * 和 B 前面的 slot
+     * 都是同一个“不移动”位置。
      */
     if (isNoOpBookmarkSlot(drag, bookmark.groupId, slot)) {
       continue;
@@ -421,21 +380,35 @@ function getBookmarkDropTarget(
   }
 
   if (nearest && nearestSlot !== null) {
-    return createBookmarkTarget(
+    const sameGroupBookmarks = candidates
+      .filter((bookmark) => bookmark.groupId === nearest.groupId)
+      .sort((a, b) => a.index - b.index);
+
+    /**
+     * 注意：
+     *
+     * 不再根据 nearest.rect 判断
+     * “before / after” 后直接定位。
+     *
+     * 所有情况都通过 slot 统一计算，
+     * 从而保证同一个 slot 只有一个
+     * 几何位置。
+     */
+    return createBookmarkSlotTarget(
       nearest.groupId,
       nearestSlot,
-      nearest.rect,
-      nearestSlot === nearest.index,
+      sameGroupBookmarks,
     );
   }
 
   /**
    * 第二阶段：
-   * 如果鼠标在 Group 的 header、
-   * 空白区域或空 Group 中，
-   * 则使用 Group 本身作为 fallback。
+   *
+   * 如果鼠标位于 Group header、
+   * Group 空白区域或者空 Group，
+   * 使用 Group 作为 fallback。
    */
-  let nearestGroup: (GroupElement & { rect: DOMRect }) | null = null;
+  let nearestGroup: MeasuredGroupElement | null = null;
 
   let minGroupDistance = Number.POSITIVE_INFINITY;
 
@@ -449,6 +422,7 @@ function getBookmarkDropTarget(
     }
 
     minGroupDistance = distance;
+
     nearestGroup = {
       ...group,
       rect,
@@ -460,12 +434,13 @@ function getBookmarkDropTarget(
   }
 
   const groupBookmarks = candidates
-    .filter((bookmark) => bookmark.groupId === nearestGroup?.groupId)
+    .filter((bookmark) => bookmark.groupId === nearestGroup.groupId)
     .sort((a, b) => a.index - b.index);
 
   /**
    * 空 Group：
-   * 整个 Group 只有一个插入 slot。
+   *
+   * 只有一个有效 slot：0。
    */
   if (groupBookmarks.length === 0) {
     if (isNoOpBookmarkSlot(drag, nearestGroup.groupId, 0)) {
@@ -485,16 +460,14 @@ function getBookmarkDropTarget(
 
   /**
    * 非空 Group：
-   * 找到鼠标下方第一个 Bookmark。
    *
-   * 它之前的 slot 就是当前插入位置。
-   * 如果没有，则插到最后一个 Bookmark 后面。
+   * 根据鼠标位置确定 slot。
    */
   const nextBookmark = groupBookmarks.find(
     (bookmark) => clientY < bookmark.rect.top,
   );
 
-  const lastBookmark = groupBookmarks[groupBookmarks.length - 1];
+  const lastBookmark = groupBookmarks.at(-1);
 
   if (!lastBookmark) {
     return null;
@@ -506,12 +479,13 @@ function getBookmarkDropTarget(
     return null;
   }
 
-  return createBookmarkTarget(
-    nearestGroup.groupId,
-    slot,
-    nextBookmark?.rect ?? lastBookmark.rect,
-    nextBookmark !== undefined,
-  );
+  /**
+   * 和前面的逻辑完全相同：
+   *
+   * 这里也不直接使用 nextBookmark / lastBookmark
+   * 来决定最终位置，而是统一通过 slot 计算。
+   */
+  return createBookmarkSlotTarget(nearestGroup.groupId, slot, groupBookmarks);
 }
 
 export function getDropTarget(
