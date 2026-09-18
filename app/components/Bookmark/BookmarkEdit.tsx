@@ -1,7 +1,11 @@
 import { cn } from "cn";
 import { Star } from "lucide-react";
 import { DynamicIcon, type IconName, iconNames } from "lucide-react/dynamic";
-import type { ComponentProps } from "react";
+import {
+  type ComponentProps,
+  type ComponentPropsWithoutRef,
+  forwardRef,
+} from "react";
 import type { BookmarkData, BookmarkGroupData } from "~/types/bookmark";
 import type { EditableField } from "./BookmarkField";
 import BookmarkField from "./BookmarkField";
@@ -54,6 +58,7 @@ export default function BookmarkEdit({
         >
           {iconElement}
         </div>
+
         <div className="flex-1 min-w-0">
           <div className="text-primary-foreground">
             <BookmarkField
@@ -81,6 +86,7 @@ export default function BookmarkEdit({
             />
           </div>
         </div>
+
         <div className="flex-none">
           <span
             className={cn(
@@ -106,6 +112,7 @@ export default function BookmarkEdit({
           }}
         />
       </div>
+
       <div className="flex-none">
         <BookmarkField
           field="description"
@@ -122,16 +129,25 @@ export default function BookmarkEdit({
   );
 }
 
-export function BookmarkGroupEdit({
-  bookmarkGroupData,
-  onBookmarkChange,
-  onBookmarkGroupChange,
-  ...restProps
-}: {
+type BookmarkGroupEditProps = {
   bookmarkGroupData: BookmarkGroupData;
   onBookmarkChange: BookmarkChange;
   onBookmarkGroupChange: BookmarkGroupChange;
-} & ComponentProps<"div">) {
+} & ComponentPropsWithoutRef<"div">;
+
+export const BookmarkGroupEdit = forwardRef<
+  HTMLDivElement,
+  BookmarkGroupEditProps
+>(function BookmarkGroupEdit(
+  {
+    bookmarkGroupData,
+    onBookmarkChange,
+    onBookmarkGroupChange,
+    className,
+    ...restProps
+  },
+  ref,
+) {
   const bookmarkElement = [...bookmarkGroupData.bookmarks]
     .sort((a, b) => a.sort - b.sort)
     .map((bookmark) => (
@@ -144,6 +160,8 @@ export function BookmarkGroupEdit({
 
   return (
     <div
+      ref={ref}
+      {...restProps}
       className={cn(
         "mb-4 border",
         bookmarkGroupData.emphasized
@@ -151,11 +169,12 @@ export function BookmarkGroupEdit({
           : "border-border hover:border-border-hover",
         "rounded-md duration-200",
         "break-inside-avoid",
+        className,
       )}
-      {...restProps}
     >
       <div className="p-4 flex gap-2 justify-between">
         <h2 className="flex-none text-3xl">{bookmarkGroupData.name}</h2>
+
         <div className="flex-none">
           <span
             className={cn(
@@ -167,6 +186,7 @@ export function BookmarkGroupEdit({
             {bookmarkGroupData.sort + 1}
           </span>
         </div>
+
         <div className="flex-none ml-auto">
           <button
             type="button"
@@ -189,4 +209,6 @@ export function BookmarkGroupEdit({
       {bookmarkElement}
     </div>
   );
-}
+});
+
+BookmarkGroupEdit.displayName = "BookmarkGroupEdit";
