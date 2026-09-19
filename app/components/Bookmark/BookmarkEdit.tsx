@@ -1,5 +1,4 @@
 import { cn } from "cn";
-import { Trash } from "lucide-react";
 import { DynamicIcon, type IconName, iconNames } from "lucide-react/dynamic";
 import {
   type ComponentPropsWithoutRef,
@@ -7,6 +6,7 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import type { BookmarkData } from "~/types/bookmark";
+import ConfirmDeleteButton from "./ConfirmDeleteButton";
 import EditableField from "./EditableField";
 
 type BookmarkChange = (
@@ -16,9 +16,12 @@ type BookmarkChange = (
   >,
 ) => void;
 
+type BookmarkDelete = (bookmarkId: BookmarkData["id"]) => void;
+
 type BookmarkEditProps = {
   bookmarkData: BookmarkData;
   onBookmarkChange: BookmarkChange;
+  onBookmarkDelete: BookmarkDelete;
   onPointerDown?: (event: ReactPointerEvent<HTMLDivElement>) => void;
 } & ComponentPropsWithoutRef<"div">;
 
@@ -28,7 +31,14 @@ function isIconName(value: string): value is IconName {
 
 const BookmarkEdit = forwardRef<HTMLDivElement, BookmarkEditProps>(
   function BookmarkEdit(
-    { bookmarkData, onBookmarkChange, className, onPointerDown, ...restProps },
+    {
+      bookmarkData,
+      onBookmarkChange,
+      onBookmarkDelete,
+      className,
+      onPointerDown,
+      ...restProps
+    },
     ref,
   ) {
     const normalizedIcon = bookmarkData.icon.toLowerCase();
@@ -49,7 +59,8 @@ const BookmarkEdit = forwardRef<HTMLDivElement, BookmarkEditProps>(
        * 所以这里不能再让 pointerdown 冒泡给
        * BookmarkGroupEdit。
        *
-       * EditableField 自己还会在更内层阻止事件，
+       * EditableField 自己会在更内层阻止事件，
+       * ConfirmDeleteButton 也会阻止事件，
        * 因而不会启动 Bookmark drag。
        */
       if (onPointerDown) {
@@ -106,6 +117,7 @@ const BookmarkEdit = forwardRef<HTMLDivElement, BookmarkEditProps>(
               />
             </div>
           </div>
+
           <div className="flex-none ml-auto">
             <div className="flex gap-2 flex-col items-center">
               <span
@@ -118,17 +130,12 @@ const BookmarkEdit = forwardRef<HTMLDivElement, BookmarkEditProps>(
               >
                 {bookmarkData.sort + 1}
               </span>
-              <button
-                type="button"
-                data-drag-blocked="true"
-                className={cn(
-                  "block flex-none",
-                  "text-destructive-foreground hover:text-destructive-foreground-hover",
-                  "transform duration-200",
-                )}
-              >
-                <Trash size="1rem" />
-              </button>
+
+              <ConfirmDeleteButton
+                onConfirm={() => {
+                  onBookmarkDelete(bookmarkData.id);
+                }}
+              />
             </div>
           </div>
         </div>
@@ -149,7 +156,7 @@ const BookmarkEdit = forwardRef<HTMLDivElement, BookmarkEditProps>(
         <div className="flex-none">
           <EditableField
             value={bookmarkData.description}
-            className="min-h-6 text-foreground break-all"
+            className="text-foreground break-all"
             multiline
             onConfirm={(value) => {
               onBookmarkChange(bookmarkData.id, {

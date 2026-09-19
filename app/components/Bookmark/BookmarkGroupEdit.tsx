@@ -1,5 +1,5 @@
 import { cn } from "cn";
-import { Star, Trash } from "lucide-react";
+import { Star } from "lucide-react";
 import {
   type ComponentPropsWithoutRef,
   forwardRef,
@@ -7,6 +7,7 @@ import {
 } from "react";
 import type { BookmarkData, BookmarkGroupData } from "~/types/bookmark";
 import BookmarkEdit from "./BookmarkEdit";
+import ConfirmDeleteButton from "./ConfirmDeleteButton";
 import EditableField from "./EditableField";
 import NewContent from "./NewContent";
 
@@ -17,12 +18,18 @@ type BookmarkChange = (
   >,
 ) => void;
 
+type BookmarkAdd = (groupId: BookmarkGroupData["id"]) => void;
+
+type BookmarkDelete = (bookmarkId: BookmarkData["id"]) => void;
+
 type BookmarkGroupChange = (
   groupId: BookmarkGroupData["id"],
   changes: Partial<
     Pick<BookmarkGroupData, "name" | "description" | "emphasized">
   >,
 ) => void;
+
+type BookmarkGroupDelete = (groupId: BookmarkGroupData["id"]) => void;
 
 type BookmarkRef = (
   bookmarkId: BookmarkData["id"],
@@ -31,14 +38,27 @@ type BookmarkRef = (
   element: HTMLDivElement | null,
 ) => void;
 
+type BookmarkContainerRef = (
+  groupId: BookmarkGroupData["id"],
+  element: HTMLDivElement | null,
+) => void;
+
 type BookmarkGroupEditProps = {
   bookmarkGroupData: BookmarkGroupData;
 
   onBookmarkChange: BookmarkChange;
 
+  onBookmarkAdd: BookmarkAdd;
+
+  onBookmarkDelete: BookmarkDelete;
+
   onBookmarkGroupChange: BookmarkGroupChange;
 
+  onBookmarkGroupDelete: BookmarkGroupDelete;
+
   bookmarkRef?: BookmarkRef;
+
+  bookmarkContainerRef?: BookmarkContainerRef;
 
   onBookmarkPointerDown?: (
     event: ReactPointerEvent<HTMLDivElement>,
@@ -57,8 +77,12 @@ export const BookmarkGroupEdit = forwardRef<
   {
     bookmarkGroupData,
     onBookmarkChange,
+    onBookmarkAdd,
+    onBookmarkDelete,
     onBookmarkGroupChange,
+    onBookmarkGroupDelete,
     bookmarkRef,
+    bookmarkContainerRef,
     onBookmarkPointerDown,
     draggingBookmarkId,
     className,
@@ -76,6 +100,7 @@ export const BookmarkGroupEdit = forwardRef<
         bookmarkData={bookmark}
         key={bookmark.id}
         onBookmarkChange={onBookmarkChange}
+        onBookmarkDelete={onBookmarkDelete}
         className={cn(
           "flex-none",
           "px-4 py-2",
@@ -127,7 +152,7 @@ export const BookmarkGroupEdit = forwardRef<
             <EditableField
               value={bookmarkGroupData.description}
               multiline
-              className="min-h-10 flex-none text-foreground break-all"
+              className="flex-none text-foreground break-all"
               onConfirm={(value) => {
                 onBookmarkGroupChange(bookmarkGroupData.id, {
                   description: value,
@@ -135,6 +160,7 @@ export const BookmarkGroupEdit = forwardRef<
               }}
             />
           </div>
+
           <div className="flex gap-2 items-center flex-none flex-col">
             <span
               className={cn(
@@ -171,24 +197,32 @@ export const BookmarkGroupEdit = forwardRef<
             >
               <Star size="1rem" />
             </button>
-            <button
-              type="button"
-              data-drag-blocked="true"
-              className={cn(
-                "block flex-none",
-                "text-destructive-foreground hover:text-destructive-foreground-hover",
-                "transform duration-200",
-              )}
-            >
-              <Trash size="1rem" />
-            </button>
+
+            <ConfirmDeleteButton
+              onConfirm={() => {
+                onBookmarkGroupDelete(bookmarkGroupData.id);
+              }}
+            />
           </div>
         </div>
       </div>
 
-      {bookmarkElement}
+      <div
+        ref={(element) => {
+          bookmarkContainerRef?.(bookmarkGroupData.id, element);
+        }}
+        className="flex flex-col gap-2"
+      >
+        {bookmarkElement}
+      </div>
 
-      <NewContent className="m-4" text="添加书签" />
+      <NewContent
+        className="p-4"
+        text="添加书签"
+        onClick={() => {
+          onBookmarkAdd(bookmarkGroupData.id);
+        }}
+      />
     </div>
   );
 });

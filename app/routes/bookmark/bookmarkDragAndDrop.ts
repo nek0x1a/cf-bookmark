@@ -174,16 +174,6 @@ function createBookmarkSlotTarget(
 
   /**
    * 两个 Bookmark 之间。
-   *
-   * 无论这个 slot 最初是通过：
-   *
-   *   前一个 Bookmark 的 after
-   *
-   * 还是：
-   *
-   *   后一个 Bookmark 的 before
-   *
-   * 得到的，最终都统一落到这里。
    */
   if (previous && next) {
     const gapCenter =
@@ -249,7 +239,6 @@ function getGroupDropTarget(
   const byIndex = new Map(candidates.map((group) => [group.index, group]));
 
   const previous = byIndex.get(slot - 1);
-
   const next = byIndex.get(slot);
 
   const groupCount =
@@ -328,6 +317,7 @@ function getBookmarkDropTarget(
   drag: BookmarkDragState,
   bookmarks: Map<BookmarkData["id"], BookmarkElement>,
   groups: Map<BookmarkGroupData["id"], GroupElement>,
+  bookmarkContainers: Map<BookmarkGroupData["id"], HTMLDivElement>,
 ): BookmarkDropTarget | null {
   const candidates: MeasuredBookmarkElement[] = [...bookmarks.values()]
     .filter((bookmark) => bookmark.bookmarkId !== drag.bookmarkId)
@@ -385,14 +375,7 @@ function getBookmarkDropTarget(
       .sort((a, b) => a.index - b.index);
 
     /**
-     * 注意：
-     *
-     * 不再根据 nearest.rect 判断
-     * “before / after” 后直接定位。
-     *
-     * 所有情况都通过 slot 统一计算，
-     * 从而保证同一个 slot 只有一个
-     * 几何位置。
+     * 所有情况都统一通过 slot 计算。
      */
     return createBookmarkSlotTarget(
       nearest.groupId,
@@ -422,7 +405,6 @@ function getBookmarkDropTarget(
     }
 
     minGroupDistance = distance;
-
     nearestGroup = {
       ...group,
       rect,
@@ -441,18 +423,27 @@ function getBookmarkDropTarget(
    * 空 Group：
    *
    * 只有一个有效 slot：0。
+   *
+   * BookmarkContainer 是空的，但仍然有一个稳定的
+   * DOM 位置，可以用它作为插入指示器锚点。
    */
   if (groupBookmarks.length === 0) {
     if (isNoOpBookmarkSlot(drag, nearestGroup.groupId, 0)) {
       return null;
     }
 
+    const bookmarkContainer = bookmarkContainers.get(nearestGroup.groupId);
+
+    const bookmarkContainerRect = bookmarkContainer?.getBoundingClientRect();
+
     return {
       type: "bookmark",
       groupId: nearestGroup.groupId,
       index: 0,
       left: nearestGroup.rect.left,
-      top: nearestGroup.rect.bottom - DROP_EDGE_OFFSET - DROP_INDICATOR_HEIGHT,
+      top: bookmarkContainerRect
+        ? bookmarkContainerRect.top - DROP_INDICATOR_HEIGHT / 2
+        : nearestGroup.rect.bottom - DROP_EDGE_OFFSET - DROP_INDICATOR_HEIGHT,
       width: nearestGroup.rect.width,
       height: DROP_INDICATOR_HEIGHT,
     };
@@ -494,8 +485,16 @@ export function getDropTarget(
   drag: DragState,
   groups: Map<BookmarkGroupData["id"], GroupElement>,
   bookmarks: Map<BookmarkData["id"], BookmarkElement>,
+  bookmarkContainers: Map<BookmarkGroupData["id"], HTMLDivElement>,
 ): DropTarget | null {
   return drag.type === "group"
     ? getGroupDropTarget(clientX, clientY, drag, groups)
-    : getBookmarkDropTarget(clientX, clientY, drag, bookmarks, groups);
+    : getBookmarkDropTarget(
+        clientX,
+        clientY,
+        drag,
+        bookmarks,
+        groups,
+        bookmarkContainers,
+      );
 }

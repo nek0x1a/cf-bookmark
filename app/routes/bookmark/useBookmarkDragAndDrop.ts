@@ -35,6 +35,11 @@ export type BookmarkRefCallback = (
   element: HTMLDivElement | null,
 ) => void;
 
+export type BookmarkContainerRefCallback = (
+  groupId: BookmarkGroupData["id"],
+  element: HTMLDivElement | null,
+) => void;
+
 export type BookmarkPointerDownHandler = (
   event: ReactPointerEvent<HTMLDivElement>,
   bookmarkId: BookmarkData["id"],
@@ -75,8 +80,11 @@ export function useBookmarkDragAndDrop({
     new Map<BookmarkData["id"], BookmarkElement>(),
   );
 
-  const dragStateRef = useRef<DragState | null>(null);
+  const bookmarkContainerElementsRef = useRef(
+    new Map<BookmarkGroupData["id"], HTMLDivElement>(),
+  );
 
+  const dragStateRef = useRef<DragState | null>(null);
   const dropTargetRef = useRef<DropTarget | null>(null);
 
   const bodyStyleRef = useRef<{
@@ -115,6 +123,15 @@ export function useBookmarkDragAndDrop({
     [],
   );
 
+  const registerBookmarkContainerRef =
+    useCallback<BookmarkContainerRefCallback>((groupId, element) => {
+      if (element) {
+        bookmarkContainerElementsRef.current.set(groupId, element);
+      } else {
+        bookmarkContainerElementsRef.current.delete(groupId);
+      }
+    }, []);
+
   const startDrag = (
     drag: DragState,
     event: ReactPointerEvent<HTMLDivElement>,
@@ -141,7 +158,6 @@ export function useBookmarkDragAndDrop({
     };
 
     document.body.style.userSelect = "none";
-
     document.body.style.cursor = "grabbing";
 
     /**
@@ -149,7 +165,7 @@ export function useBookmarkDragAndDrop({
      * 当前 pointerdown 来自拖拽区域。
      *
      * 因此 preventDefault 不会影响
-     * EditableField / Star 的交互。
+     * EditableField / Star / NewContent / DeleteButton 的交互。
      */
     event.preventDefault();
 
@@ -229,11 +245,11 @@ export function useBookmarkDragAndDrop({
       }
 
       document.body.style.userSelect = previousStyle.userSelect;
-
       document.body.style.cursor = previousStyle.cursor;
 
       bodyStyleRef.current = null;
     };
+
     const clearDragState = () => {
       dragStateRef.current = null;
       dropTargetRef.current = null;
@@ -245,6 +261,7 @@ export function useBookmarkDragAndDrop({
 
       restoreBodyStyle();
     };
+
     const handlePointerMove = (event: PointerEvent) => {
       const drag = dragStateRef.current;
 
@@ -265,6 +282,7 @@ export function useBookmarkDragAndDrop({
         drag,
         groupElementsRef.current,
         bookmarkElementsRef.current,
+        bookmarkContainerElementsRef.current,
       );
 
       if (!isSameDropTarget(dropTargetRef.current, nextDropTarget)) {
@@ -319,9 +337,7 @@ export function useBookmarkDragAndDrop({
     };
 
     window.addEventListener("pointermove", handlePointerMove);
-
     window.addEventListener("pointerup", handlePointerUp);
-
     window.addEventListener("pointercancel", handlePointerCancel);
 
     return () => {
@@ -346,6 +362,7 @@ export function useBookmarkDragAndDrop({
 
     registerGroupRef,
     registerBookmarkRef,
+    registerBookmarkContainerRef,
 
     handleGroupPointerDown,
     handleBookmarkPointerDown,

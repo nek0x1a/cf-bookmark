@@ -165,13 +165,14 @@ export default function EditableField({
         "text-left",
         className,
         !value ? "border border-muted border-dashed rounded" : "",
+        !value ? "text-muted-foreground px-2" : "",
       )}
       onPointerDown={(event) => {
         event.stopPropagation();
       }}
       onDoubleClick={startEditing}
     >
-      {value}
+      {value ? value : "添加内容"}
     </button>
   );
 }
