@@ -8,6 +8,7 @@ import {
 import type { BookmarkData, BookmarkGroupData } from "~/types/bookmark";
 import BookmarkEdit from "./BookmarkEdit";
 import EditableField from "./EditableField";
+import NewContent from "./NewContent";
 
 type BookmarkChange = (
   bookmarkId: BookmarkData["id"],
@@ -98,7 +99,7 @@ export const BookmarkGroupEdit = forwardRef<
       ref={ref}
       {...restProps}
       className={cn(
-        "mb-4 py-4 border",
+        "mb-4 border",
         "flex gap-2 flex-col",
         bookmarkGroupData.emphasized
           ? "border-primary-foreground hover:border-primary-foreground-hover"
@@ -108,7 +109,7 @@ export const BookmarkGroupEdit = forwardRef<
         className,
       )}
     >
-      <div className="px-4 pb-2">
+      <div className="p-4">
         <div className="flex gap-2 justify-between">
           <div className="flex flex-1 gap-2 flex-col">
             <h2 className="flex-none text-3xl">
@@ -186,6 +187,8 @@ export const BookmarkGroupEdit = forwardRef<
       </div>
 
       {bookmarkElement}
+
+      <NewContent className="m-4" text="添加书签" />
     </div>
   );
 });

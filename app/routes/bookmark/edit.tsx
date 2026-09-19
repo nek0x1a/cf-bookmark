@@ -1,6 +1,8 @@
 import { env } from "cloudflare:workers";
+import { cn } from "cn";
 import { useCallback, useState } from "react";
 import { BookmarkGroupEdit } from "~/components/Bookmark/BookmarkGroupEdit";
+import NewContent from "~/components/Bookmark/NewContent";
 import { getBookmarks } from "~/db/d1";
 import type { BookmarkData, BookmarkGroupData } from "~/types/bookmark";
 import type { Route } from "./+types/edit";
@@ -118,8 +120,19 @@ export default function EditBookmark({ loaderData }: Route.ComponentProps) {
       <h1 className="text-4xl font-bold text-primary-foreground my-8">
         编辑书签
       </h1>
+      <div className="columns-[20em] gap-4">
+        {groupElement}
 
-      <div className="columns-[20em] gap-4">{groupElement}</div>
+        <NewContent
+          className={cn(
+            "py-4",
+            "border rounded-md",
+            "border-dashed hover:border-solid",
+            "border-muted-foreground hover:border-foreground",
+          )}
+          text="添加分组"
+        />
+      </div>
 
       {dragPreview && (
         <div
