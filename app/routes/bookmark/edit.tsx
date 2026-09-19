@@ -1,10 +1,20 @@
 import { env } from "cloudflare:workers";
 import { cn } from "cn";
 import { useCallback, useState } from "react";
+import { data } from "react-router";
+import { setCachedBookmarks } from "~/cache/bookmarks";
 import { BookmarkGroupEdit } from "~/components/Bookmark/BookmarkGroupEdit";
+import BookmarkSaveButton from "~/components/Bookmark/BookmarkSaveButton";
+import { ConfirmDeleteProvider } from "~/components/Bookmark/ConfirmDeleteButton";
 import NewContent from "~/components/Bookmark/NewContent";
-import { getBookmarks } from "~/db/d1";
+import { getBookmarks, saveBookmarkChanges } from "~/db/d1";
 import type { BookmarkData, BookmarkGroupData } from "~/types/bookmark";
+import {
+  type BookmarkChangeSet,
+  type BookmarkIdMap,
+  createTemporaryBookmarkId,
+  createTemporaryGroupId,
+} from "~/utils/bookmarkDiff";
 import type { Route } from "./+types/edit";
 import { useBookmarkDragAndDrop } from "./useBookmarkDragAndDrop";
 
@@ -24,6 +34,102 @@ export async function loader() {
 
   return {
     bookmarkdata: [...bookmarkdata],
+  };
+}
+
+export async function action({ request }: Route.ActionArgs) {
+  let changes: BookmarkChangeSet;
+
+  /*
+   * 请求解析失败属于客户端请求错误。
+   */
+  try {
+    if (request.method.toUpperCase() !== "POST") {
+      return data(
+        {
+          ok: false,
+          error: "不支持的请求方式。",
+        },
+        { status: 405 },
+      );
+    }
+
+    const body = (await request.json()) as {
+      changes?: BookmarkChangeSet;
+    };
+
+    if (!body.changes) {
+      return data(
+        {
+          ok: false,
+          error: "保存数据格式无效。",
+        },
+        { status: 400 },
+      );
+    }
+
+    changes = body.changes;
+  } catch (error) {
+    console.error("解析书签保存请求失败", error);
+
+    return data(
+      {
+        ok: false,
+        error: "保存数据格式无效。",
+      },
+      { status: 400 },
+    );
+  }
+
+  /*
+   * 这里只负责数据库事务。
+   *
+   * 如果 batch 中任意一步失败，
+   * saveBookmarkChanges 会抛异常，
+   * 数据库整体回滚。
+   */
+  let idMap: BookmarkIdMap | null = null;
+
+  try {
+    idMap = await saveBookmarkChanges(env.DB, changes);
+  } catch (error) {
+    console.error("保存书签到 D1 失败", error);
+
+    return data(
+      {
+        ok: false,
+        error: "保存失败，数据库未发生修改。",
+      },
+      { status: 500 },
+    );
+  }
+
+  /*
+   * 数据库事务成功之后，再读取最终数据并更新缓存。
+   *
+   * 这一步不属于 D1 事务本身。
+   * Cache API 出错不能再回滚已经提交的数据库事务，
+   * 因此只记录 warning，并仍然视为数据库保存成功。
+   */
+  let bookmarkData: BookmarkGroupData[] | null = null;
+
+  let cacheUpdated = false;
+
+  try {
+    bookmarkData = [...(await getBookmarks(env.DB))];
+
+    await setCachedBookmarks(bookmarkData);
+
+    cacheUpdated = true;
+  } catch (error) {
+    console.error("保存后刷新书签缓存失败", error);
+  }
+
+  return {
+    ok: true,
+    bookmarkData,
+    idMap,
+    cacheUpdated,
   };
 }
 
@@ -72,10 +178,7 @@ export default function EditBookmark({ loaderData }: Route.ComponentProps) {
 
   const handleBookmarkAdd = useCallback((groupId: BookmarkGroupData["id"]) => {
     setBookmarkData((currentData) => {
-      const nextBookmarkId =
-        currentData
-          .flatMap((group) => group.bookmarks)
-          .reduce((maxId, bookmark) => Math.max(maxId, bookmark.id), 0) + 1;
+      const nextBookmarkId = createTemporaryBookmarkId(currentData);
 
       return currentData.map((group) => {
         if (group.id !== groupId) {
@@ -152,8 +255,7 @@ export default function EditBookmark({ loaderData }: Route.ComponentProps) {
 
   const handleBookmarkGroupAdd = useCallback(() => {
     setBookmarkData((currentData) => {
-      const nextGroupId =
-        currentData.reduce((maxId, group) => Math.max(maxId, group.id), 0) + 1;
+      const nextGroupId = createTemporaryGroupId(currentData);
 
       const nextSort =
         currentData.reduce(
@@ -190,6 +292,10 @@ export default function EditBookmark({ loaderData }: Route.ComponentProps) {
     [],
   );
 
+  const handleBookmarkSaved = useCallback((savedData: BookmarkGroupData[]) => {
+    setBookmarkData(savedData);
+  }, []);
+
   const groupElement = [...bookmarkData]
     .sort((a, b) => a.sort - b.sort)
     .map((group, index) => (
@@ -221,36 +327,44 @@ export default function EditBookmark({ loaderData }: Route.ComponentProps) {
 
   return (
     <main>
-      <div className="flex justify-between  my-8">
+      <div className="flex justify-between my-8">
         <h1 className="flex-none text-4xl font-bold text-primary-foreground">
           编辑书签
         </h1>
+
         <div className="flex flex-none gap-4">
           <span>
             <a href="https://lucide.dev/icons" target="_blank" rel="noopener">
               [挑选图标]
             </a>
           </span>
+
           <span>
-            <button type="button">[保存数据]</button>
+            <BookmarkSaveButton
+              originalData={loaderData.bookmarkdata}
+              bookmarkData={bookmarkData}
+              onSaved={handleBookmarkSaved}
+            />
           </span>
         </div>
       </div>
 
-      <div className="columns-[20em] gap-4">
-        {groupElement}
+      <ConfirmDeleteProvider>
+        <div className="columns-[20em] gap-4">
+          {groupElement}
 
-        <NewContent
-          className={cn(
-            "w-full py-4",
-            "border rounded-md",
-            "border-dashed hover:border-solid",
-            "border-muted-foreground hover:border-foreground",
-          )}
-          text="添加分组"
-          onClick={handleBookmarkGroupAdd}
-        />
-      </div>
+          <NewContent
+            className={cn(
+              "w-full py-4",
+              "border rounded-md",
+              "border-dashed hover:border-solid",
+              "border-muted-foreground hover:border-foreground",
+            )}
+            text="添加分组"
+            onClick={handleBookmarkGroupAdd}
+          />
+        </div>
+      </ConfirmDeleteProvider>
 
       {dragPreview && (
         <div

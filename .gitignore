@@ -16,5 +16,8 @@ worker-configuration.d.ts
 !.dev.vars.example
 !.env.example
 
+*.deleted
+
 /app/data/
 /wrangler.jsonc
+/scripts/data-init.sql
