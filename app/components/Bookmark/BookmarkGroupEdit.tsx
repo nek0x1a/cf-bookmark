@@ -1,5 +1,5 @@
 import { cn } from "cn";
-import { Star } from "lucide-react";
+import { Star, Trash } from "lucide-react";
 import {
   type ComponentPropsWithoutRef,
   forwardRef,
@@ -123,57 +123,64 @@ export const BookmarkGroupEdit = forwardRef<
               />
             </h2>
 
-            <div className="flex-none">
-              <EditableField
-                value={bookmarkGroupData.description}
-                multiline
-                className="min-h-4 text-foreground break-all"
-                onConfirm={(value) => {
-                  onBookmarkGroupChange(bookmarkGroupData.id, {
-                    description: value,
-                  });
-                }}
-              />
-            </div>
+            <EditableField
+              value={bookmarkGroupData.description}
+              multiline
+              className="min-h-10 flex-none text-foreground break-all"
+              onConfirm={(value) => {
+                onBookmarkGroupChange(bookmarkGroupData.id, {
+                  description: value,
+                });
+              }}
+            />
           </div>
-          <div className="flex items-center flex-none flex-col">
-            <div className="flex-none">
-              <button
-                type="button"
-                data-drag-blocked="true"
-                className={cn(
-                  bookmarkGroupData.emphasized
-                    ? "text-primary-foreground hover:text-primary-foreground-hover"
-                    : "text-muted-foreground hover:text-primary-foreground-hover",
-                )}
-                onPointerDown={(event) => {
-                  event.stopPropagation();
-                }}
-                onClick={() => {
-                  onBookmarkGroupChange(bookmarkGroupData.id, {
-                    emphasized: !bookmarkGroupData.emphasized,
-                  });
-                }}
-                aria-pressed={bookmarkGroupData.emphasized}
-                aria-label={
-                  bookmarkGroupData.emphasized ? "取消强调" : "强调书签组"
-                }
-              >
-                <Star size="1rem" />
-              </button>
-            </div>
+          <div className="flex gap-2 items-center flex-none flex-col">
+            <span
+              className={cn(
+                "px-1",
+                "block flex-none",
+                "text-xs text-muted",
+                "border border-muted rounded-sm",
+              )}
+            >
+              {bookmarkGroupData.sort + 1}
+            </span>
 
-            <div className="flex-none">
-              <span
-                className={cn(
-                  "px-1",
-                  "text-xs text-muted",
-                  "border border-muted rounded-sm",
-                )}
-              >
-                {bookmarkGroupData.sort + 1}
-              </span>
-            </div>
+            <button
+              type="button"
+              data-drag-blocked="true"
+              className={cn(
+                "flex-none",
+                bookmarkGroupData.emphasized
+                  ? "text-primary-foreground hover:text-primary-foreground-hover"
+                  : "text-muted-foreground hover:text-primary-foreground-hover",
+              )}
+              onPointerDown={(event) => {
+                event.stopPropagation();
+              }}
+              onClick={() => {
+                onBookmarkGroupChange(bookmarkGroupData.id, {
+                  emphasized: !bookmarkGroupData.emphasized,
+                });
+              }}
+              aria-pressed={bookmarkGroupData.emphasized}
+              aria-label={
+                bookmarkGroupData.emphasized ? "取消强调" : "强调书签组"
+              }
+            >
+              <Star size="1rem" />
+            </button>
+            <button
+              type="button"
+              data-drag-blocked="true"
+              className={cn(
+                "block flex-none",
+                "text-destructive-foreground hover:text-destructive-foreground-hover",
+                "transform duration-200",
+              )}
+            >
+              <Trash size="1rem" />
+            </button>
           </div>
         </div>
       </div>

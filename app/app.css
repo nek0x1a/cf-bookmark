@@ -31,6 +31,7 @@
   --color-warning-foreground: var(--warning-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-destructive-foreground-hover: var(--destructive-foreground-hover);
 }
 
 [data-theme="dark"] {
@@ -70,6 +71,7 @@
 
   --destructive: var(--color-mauve-700);
   --destructive-foreground: var(--color-red-400);
+  --destructive-foreground-hover: var(--color-red-300);
 }
 
 html,

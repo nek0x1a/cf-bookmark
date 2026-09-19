@@ -1,4 +1,5 @@
 import { cn } from "cn";
+import { Trash } from "lucide-react";
 import { DynamicIcon, type IconName, iconNames } from "lucide-react/dynamic";
 import {
   type ComponentPropsWithoutRef,
@@ -106,15 +107,29 @@ const BookmarkEdit = forwardRef<HTMLDivElement, BookmarkEditProps>(
             </div>
           </div>
           <div className="flex-none ml-auto">
-            <span
-              className={cn(
-                "px-1",
-                "text-xs text-muted",
-                "border border-muted rounded-sm",
-              )}
-            >
-              {bookmarkData.sort + 1}
-            </span>
+            <div className="flex gap-2 flex-col items-center">
+              <span
+                className={cn(
+                  "px-1",
+                  "block flex-none",
+                  "text-xs text-muted",
+                  "border border-muted rounded-sm",
+                )}
+              >
+                {bookmarkData.sort + 1}
+              </span>
+              <button
+                type="button"
+                data-drag-blocked="true"
+                className={cn(
+                  "block flex-none",
+                  "text-destructive-foreground hover:text-destructive-foreground-hover",
+                  "transform duration-200",
+                )}
+              >
+                <Trash size="1rem" />
+              </button>
+            </div>
           </div>
         </div>
 
@@ -134,7 +149,7 @@ const BookmarkEdit = forwardRef<HTMLDivElement, BookmarkEditProps>(
         <div className="flex-none">
           <EditableField
             value={bookmarkData.description}
-            className="min-h-4 text-foreground break-all"
+            className="min-h-6 text-foreground break-all"
             multiline
             onConfirm={(value) => {
               onBookmarkChange(bookmarkData.id, {
