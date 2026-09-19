@@ -221,9 +221,21 @@ export default function EditBookmark({ loaderData }: Route.ComponentProps) {
 
   return (
     <main>
-      <h1 className="text-4xl font-bold text-primary-foreground my-8">
-        编辑书签
-      </h1>
+      <div className="flex justify-between  my-8">
+        <h1 className="flex-none text-4xl font-bold text-primary-foreground">
+          编辑书签
+        </h1>
+        <div className="flex flex-none gap-4">
+          <span>
+            <a href="https://lucide.dev/icons" target="_blank" rel="noopener">
+              [挑选图标]
+            </a>
+          </span>
+          <span>
+            <button type="button">[保存数据]</button>
+          </span>
+        </div>
+      </div>
 
       <div className="columns-[20em] gap-4">
         {groupElement}
