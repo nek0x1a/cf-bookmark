@@ -1,5 +1,5 @@
 import { cn } from "cn";
-import { GripVertical, Star, StarOff } from "lucide-react";
+import { GripVertical, Plus, Star, StarOff, Trash } from "lucide-react";
 import type { ComponentProps } from "react";
 import type { BookmarkGroupData } from "~/types/bookmark";
 import BookmarkEdit from "./BookmarkEdit";
@@ -8,7 +8,7 @@ export default function BookmarkGroupEdit({
   bookmarkGroupData,
   className,
   ...restProps
-}: { bookmarkGroupData: BookmarkGroupData } & ComponentProps<"li">) {
+}: { bookmarkGroupData: BookmarkGroupData } & ComponentProps<"div">) {
   const bookmarkElements = bookmarkGroupData.bookmarks.map((bookmark) => {
     return (
       <BookmarkEdit
@@ -20,11 +20,11 @@ export default function BookmarkGroupEdit({
   });
 
   return (
-    <li className={cn(className)} {...restProps}>
+    <div className={cn(className)} {...restProps}>
       <div
         className={cn(
           "py-2",
-          "flex gap-2",
+          "bookmark-group-edit-grid-columns",
           "justify-between items-center",
           "border-y-2 border-muted-border",
         )}
@@ -32,7 +32,7 @@ export default function BookmarkGroupEdit({
         {/* 拖动按钮 */}
         <div
           className={cn(
-            "flex-none",
+            "flex justify-center",
             "text-muted-foreground hover:text-foreground",
             "transform duration-200",
           )}
@@ -42,7 +42,7 @@ export default function BookmarkGroupEdit({
         {/* 重要书签组指示 */}
         <div
           className={cn(
-            "flex-none",
+            "flex justify-center",
             bookmarkGroupData.emphasized
               ? "text-primary-foreground hover:text-primary-foreground-hover"
               : "text-muted-foreground hover:text-foreground",
@@ -52,21 +52,42 @@ export default function BookmarkGroupEdit({
           {bookmarkGroupData.emphasized ? <Star size="1.5rem" /> : <StarOff />}
         </div>
         {/* 书签组名 */}
-        <div className="flex-1 text-xl text-primary-foreground font-bold">
+        <div className="text-xl text-primary-foreground font-bold">
           {bookmarkGroupData.name}
         </div>
         {/* 书签组说明 */}
         <div
           className={cn(
-            "flex-2",
+            !bookmarkGroupData.description && "italic",
+            "break-all",
             "text-muted-foreground hover:text-foreground",
             "transform duration-200",
           )}
         >
           {bookmarkGroupData.description || "暂无描述"}
         </div>
+        {/* 新增书签按钮 */}
+        <div
+          className={cn(
+            "flex justify-center",
+            "text-foreground hover:text-primary-foreground",
+            "transform duration-200",
+          )}
+        >
+          <Plus size="1.5rem" />
+        </div>
+        {/* 删除按钮 */}
+        <div
+          className={cn(
+            "flex justify-center",
+            "text-muted-foreground hover:text-destructive-foreground",
+            "transform duration-200",
+          )}
+        >
+          <Trash size="1.5rem" />
+        </div>
       </div>
-      <ol>{bookmarkElements}</ol>
-    </li>
+      <div className="ml-6">{bookmarkElements}</div>
+    </div>
   );
 }
