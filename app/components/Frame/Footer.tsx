@@ -1,8 +1,5 @@
 import type { ComponentProps } from "react";
 
-/**
- * 页脚
- */
 export default function Footer({
   footerStr = "猫 ♥ 喵",
   children,

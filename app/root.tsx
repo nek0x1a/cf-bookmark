@@ -10,7 +10,7 @@ import {
 import type { Route } from "./+types/root";
 import "./app.css";
 import { cn } from "cn";
-import Footer from "./components/Frame/Footer";
+import Footer from "./components/frame/Footer";
 
 export const links: Route.LinksFunction = () => [];
 
@@ -61,8 +61,8 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
       {stack && (
         <pre
           className={cn(
-            "my-2 p-2 bg-muted",
-            "border border-border rounded-md",
+            "my-2 p-2 bg-muted text-muted-foreground",
+            "border border-muted-border rounded-md",
             "overflow-x-auto",
           )}
         >

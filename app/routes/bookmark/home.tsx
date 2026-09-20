@@ -1,8 +1,8 @@
 import { env } from "cloudflare:workers";
 import { Link } from "react-router";
 import { getCachedBookmarks } from "~/cache/bookmarks";
-import { BookmarkGroup } from "~/components/Bookmark";
-import Greeting from "~/components/Greeting";
+import BookmarkGroup from "~/components/bookmark/BookmarkGroup";
+import Greeting from "~/components/widget/Greeting";
 import type { Route } from "./+types/home";
 
 export function meta(_: Route.MetaArgs) {
@@ -18,7 +18,7 @@ export async function loader() {
   return { bookmarkdata: [...bookmarkdata] };
 }
 
-export default function Home({ loaderData }: Route.ComponentProps) {
+export default function BookmarkPage({ loaderData }: Route.ComponentProps) {
   const bookmarkEmphasizedGroups = loaderData.bookmarkdata
     .filter((group) => group.emphasized)
     .map((group) => (
